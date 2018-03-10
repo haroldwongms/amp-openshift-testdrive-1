@@ -8,7 +8,7 @@
 				"description": "Base URL for Template Files",
 				"artifactsBaseUrl": ""
 			},
-			"defaultValue": "https://raw.githubusercontent.com/vincepower/amp-openshift-testdrive/release-3.7"
+			"defaultValue": "https://raw.githubusercontent.com/vincepower/amp-openshift-testdrive/master"
 		},
 		"nodeVmSize": {
 			"type": "string",
