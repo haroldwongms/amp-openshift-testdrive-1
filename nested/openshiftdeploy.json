@@ -1,0 +1,201 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"location": {
+			"type": "string",
+			"metadata": {
+				"description": "Datacenter Region Location"
+			}
+		},
+		"apiVersionCompute": {
+			"type": "string",
+			"metadata": {
+				"description": "API version for compute resources"
+			}
+		},
+		"openshiftDeploymentScriptUrl": {
+			"type": "string",
+			"metadata": {
+				"description": "Bastion prep script Url"
+			}
+		},
+		"openshiftDeploymentScriptFileName": {
+			"type": "string",
+			"metadata": {
+				"description": "Bastion prep script file name"
+			}
+		},
+		"newStorageAccountRegistry": {
+			"type": "string",
+			"metadata": {
+				"description": "Storage Account for Docker Registry"
+			}
+		},
+		"newStorageAccountKey": {
+			"type": "string",
+			"metadata": {
+				"description": "Storage Account Key for Docker Registry"
+			}
+		},
+		"openshiftBastionHostname": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Bastion hostname"
+			}
+		},
+		"openshiftMasterHostname": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Master hostname"
+			}
+		},
+		"openshiftMasterPublicIpFqdn": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Master VM public IP fully qualified domain name"
+			}
+		},
+		"openshiftMasterPublicIpAddress": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Master VM public IP address"
+			}
+		},
+		"openshiftInfraHostname": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Infra Node hostname"
+			}
+		},
+		"openshiftNodeHostname": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift Node hostname"
+			}
+		},
+		"masterInstanceCount": {
+			"type": "int",
+			"metadata": {
+				"description": "Number of OpenShift Master nodes"
+			}
+		},
+		"infraInstanceCount": {
+			"type": "int",
+			"metadata": {
+				"description": "Number of OpenShift Infra nodes"
+			}
+		},
+		"nodeInstanceCount": {
+			"type": "int",
+			"metadata": {
+				"description": "Number of OpenShift nodes"
+			}
+		},
+		"storageKind": {
+			"type": "string",
+			"metadata": {
+				"description": "Managed or unmanaged disk"
+			}
+		},
+		"adminUsername": {
+			"type": "string",
+			"metadata": {
+				"description": "Administrator username on all VMs"
+			}
+		},
+		"openshiftPassword": {
+			"type": "securestring",
+			"metadata": {
+				"description": "Administrator password for OpenShift Console"
+			}
+		},
+		"enableMetrics": {
+			"type": "string",
+			"metadata": {
+				"description": "Enable OpenShift Metrics: true or false"
+			}
+		},
+		"enableLogging": {
+			"type": "string",
+			"metadata": {
+				"description": "Enable OpenShift Logging: true or false"
+			}
+		},
+		"enableAzure": {
+			"type": "string",
+			"metadata": {
+				"description": "Enable Azure: true or false"
+			}
+		},
+		"aadClientId": {
+			"type": "string",
+			"metadata": {
+				"description": "Azure AD Client ID"
+			}
+		},
+		"aadClientSecret": {
+			"type": "securestring",
+			"metadata": {
+				"description": "Azure AD Client Secret"
+			}
+		},
+		"nipioDomain": {
+			"type": "string",
+			"metadata": {
+				"description": "nip.io Subdomain for application routing"
+			}
+		},
+		"customDomain": {
+			"type": "string",
+			"metadata": {
+				"description": "custom Subdomain for application routing"
+			}
+		},
+		"subDomainChosen": {
+			"type": "string",
+			"metadata": {
+				"description": "Subdomain chosen for application routing"
+			}
+		},
+		"redHatTags": {
+			"type": "object",
+			"metadata": {
+				"description": "Red Hat Tags"
+			}
+		}
+	},
+	"variables": {
+		"singlequote": "'",
+		"tenantId": "[subscription().tenantId]",
+		"subscriptionId": "[subscription().subscriptionId]",
+		"location": "[parameters('location')]",
+		"resourceGroupName": "[resourceGroup().name]"
+	},
+	"resources": [{
+		"type": "Microsoft.Compute/virtualMachines/extensions",
+		"name": "[concat(parameters('openshiftBastionHostname'), '/deployOpenShift')]",
+		"location": "[parameters('location')]",
+		"apiVersion": "[parameters('apiVersionCompute')]",
+		"tags": {
+			"displayName": "DeployOpenShift",
+				"provider": "[parameters('redHatTags').provider]",
+				"app": "[parameters('redHatTags').app]"
+		},
+		"properties": {
+			"publisher": "Microsoft.Azure.Extensions",
+			"type": "CustomScript",
+			"typeHandlerVersion": "2.0",
+			"autoUpgradeMinorVersion": true,
+			"settings": {
+				"fileUris": [
+					"[parameters('openshiftDeploymentScriptUrl')]"
+				]
+			},
+			"protectedSettings": {
+				"commandToExecute": "[concat('bash ', parameters('openshiftDeploymentScriptFileName'), ' \"', parameters('adminUsername'), '\" ', variables('singlequote'), parameters('openshiftPassword'), variables('singlequote'), ' \"', parameters('openshiftMasterHostname'), '\" \"', parameters('openshiftMasterPublicIpFqdn'), '\" \"', parameters('openshiftMasterPublicIpAddress'), '\" \"', parameters('openshiftInfraHostname'), '\" \"', parameters('openshiftNodeHostname'), '\" \"', parameters('nodeInstanceCount'), '\" \"', parameters('infraInstanceCount'), '\" \"', parameters('MasterInstanceCount'), '\" \"', parameters(parameters('subDomainChosen')), '\" \"', parameters('newStorageAccountRegistry'), '\" ', variables('singlequote'), parameters('newStorageAccountKey'), variables('singlequote'), ' \"', parameters('enableMetrics'), '\" \"', parameters('enableLogging'), '\" ', variables('singlequote'), variables('tenantId'), variables('singlequote'), ' ', variables('singlequote'), variables('subscriptionId'), variables('singlequote'), ' ', variables('singlequote'), parameters('aadClientId'), variables('singlequote'), ' ', variables('singlequote'), parameters('aadClientSecret'), variables('singlequote'), ' ', variables('singlequote'), variables('resourceGroupName'), variables('singlequote'), ' ', variables('singlequote'), variables('location'), variables('singlequote'), ' ', variables('singlequote'), parameters('enableAzure'), variables('singlequote'), ' ', variables('singlequote'), parameters('storageKind'), variables('singlequote'))]"
+			}
+		}
+	}],
+	"outputs": {}
+}
