@@ -1842,7 +1842,7 @@
 		},
 		"OpenShiftUserandPassword": {
 			"type": "string",
-			"value": "[concat('OpenShift Username is: testdrive  --  Password is: ', variables('openshiftPassword'))]"
+			"value": "[concat('OpenShift Username is: testdrive  --  Password is: ', parameters('openshiftPassword'))]"
 		}
 	}
 }
