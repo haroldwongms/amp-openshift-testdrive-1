@@ -79,10 +79,10 @@ echo $(date) " - Installing OpenShift utilities"
 
 yum -y install atomic-openshift-utils
 
-# Install Docker 1.12.x
-echo $(date) " - Installing Docker 1.12.x"
+# Install Latest Docker
+echo $(date) " - Installing Docker"
 
-yum -y install docker-1.12.6
+yum -y install docker
 sed -i -e "s#^OPTIONS='--selinux-enabled'#OPTIONS='--selinux-enabled --insecure-registry 172.30.0.0/16'#" /etc/sysconfig/docker
 
 # Create thin pool logical volume for Docker
