@@ -46,7 +46,8 @@ subscription-manager repos --disable="*"
 subscription-manager repos \
     --enable="rhel-7-server-rpms" \
     --enable="rhel-7-server-extras-rpms" \
-    --enable="rhel-7-server-ose-3.7-rpms" \
+    --enable="rhel-7-server-ose-3.9-rpms" \
+    --enable="rhel-7-server-ansible-2.4-rpms" \
     --enable="rhel-7-fast-datapath-rpms"
 
 # Install base packages and update system to latest packages
@@ -71,10 +72,10 @@ part_number=${majorminor#*:}
 growpart $rootdrive $part_number -u on
 xfs_growfs $rootdev
 
-# Install Latest Docker
+# Install Docker
 echo $(date) " - Installing Docker"
-
 yum -y install docker
+
 sed -i -e "s#^OPTIONS='--selinux-enabled'#OPTIONS='--selinux-enabled --insecure-registry 172.30.0.0/16'#" /etc/sysconfig/docker
 
 # Create thin pool logical volume for Docker
