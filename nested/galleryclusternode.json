@@ -116,6 +116,12 @@
 				"description": "Image Reference"
 			}
 		},
+		"plan": {	
+			"type": "object",	
+			"metadata": {	
+				"description": "Plan"	
+			}	
+		},
 		"redHatTags": {
 			"type": "object",
 			"metadata": {
@@ -179,6 +185,7 @@
 				"provider": "[parameters('redHatTags').provider]",
 				"app": "[parameters('redHatTags').app]"
 		},
+		"plan": "[parameters('plan')]",
 		"properties": {
 			"availabilitySet": {
 				"id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('availabilitySet'))]"
