@@ -21,6 +21,9 @@ subscription-manager register --username="$USERNAME_ORG" --password="$PASSWORD_A
 if [ $? -eq 0 ]
 then
    echo "Subscribed successfully"
+elif [ $? -eq 64 ]
+then
+   echo "This system is already registered."
 else
    echo "Incorrect Username / Password or Organization ID / Activation Key specified"
    exit 3
@@ -69,8 +72,8 @@ echo $(date) " - Grow Root FS"
 rootdev=`findmnt --target / -o SOURCE -n`
 rootdrivename=`lsblk -no pkname $rootdev`
 rootdrive="/dev/"$rootdrivename
-majorminor=`lsblk  $rootdev -o MAJ:MIN | tail -1`
-part_number=${majorminor#*:}
+name=`lsblk  $rootdev -o NAME | tail -1`
+part_number=${name#*${rootdrivename}}
 
 growpart $rootdrive $part_number -u on
 xfs_growfs $rootdev
