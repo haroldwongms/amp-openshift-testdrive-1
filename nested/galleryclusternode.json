@@ -116,11 +116,11 @@
 				"description": "Image Reference"
 			}
 		},
-		"plan": {	
-			"type": "object",	
-			"metadata": {	
-				"description": "Plan"	
-			}	
+		"plan": {
+			"type": "object",
+			"metadata": {
+				"description": "Plan"
+			}
 		},
 		"redHatTags": {
 			"type": "object",
@@ -182,8 +182,10 @@
 		"apiVersion": "[parameters('apiVersionCompute')]",
 		"tags": {
 			"Role": "[parameters('role')]",
-				"provider": "[parameters('redHatTags').provider]",
-				"app": "[parameters('redHatTags').app]"
+			"provider": "[parameters('redHatTags').provider]",
+			"app": "[parameters('redHatTags').app]",
+			"version": "[parameters('redHatTags').version]",
+			"platform": "[parameters('redHatTags').platform]"
 		},
 		"plan": "[parameters('plan')]",
 		"properties": {
