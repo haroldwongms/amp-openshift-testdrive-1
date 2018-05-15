@@ -2112,15 +2112,15 @@
 		}
 	],
 	"outputs": {
-		"Openshift Console Url": {
+		"OpenshiftConsoleUrl": {
 			"type": "string",
 			"value": "[concat('https://', reference(variables('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, '/console')]"
 		},
-		"Openshift Infra Load Balancer FQDN": {
+		"OpenshiftInfraLoadBalancerFQDN": {
 			"type": "string",
 			"value": "[reference(variables('infraLbPublicIpDnsLabel')).dnsSettings.fqdn]"
 		},
-		"OpenShift User and Password": {
+		"OpenShiftUserandPassword": {
 			"type": "string",
 			"value": "[concat('OpenShift Username is: testdrive  --  Password is: ', parameters('openshiftPassword'))]"
 		}
