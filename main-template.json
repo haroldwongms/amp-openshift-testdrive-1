@@ -347,13 +347,13 @@
 		"imageReference": {
 			"publisher": "redhat",
 			"offer": "rhel-ocp-marketplace",
-			"sku": "rhel74",
+			"sku": "rhel75",
 			"version": "latest"
 		},
 		"plan": {
 			"publisher": "redhat",
 			"product": "rhel-ocp-marketplace",
-			"name": "rhel74"
+			"name": "rhel75"
 		},
 		"redHatTags": {
 			"app": "OpenShiftMarketplace",
