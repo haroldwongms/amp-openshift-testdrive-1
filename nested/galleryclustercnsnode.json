@@ -20,6 +20,12 @@
 				"description": "SSH Public Key"
 			}
 		},
+		"osDiskSize": {
+			"type": "int",
+			"metadata": {
+				"description": "Size of Data Disk"
+			}
+		},
 		"dataDiskSize": {
 			"type": "int",
 			"metadata": {
@@ -42,6 +48,24 @@
 			"type": "string",
 			"metadata": {
 				"description": "VM Size"
+			}
+		},
+		"osImageType": {
+			"type": "string",
+			"metadata": {
+				"description": "OpenShift OS image type. 'defaultgallery' will use the on demand RHEL image. 'marketplace' allows you to define a third party marketplace image to use."
+			}
+		},
+		"marketplaceOsImage": {
+			"type": "object",
+			"metadata": {
+				"description": "Enter the appropriate publisher, offer, sku and version values for the appropriate marketplace image you want to use."
+			}
+		},
+		"marketplacePlan": {
+			"type": "object",
+			"metadata": {
+				"description": "Plan object for marketplace offer."
 			}
 		},
 		"availabilitySet": {
@@ -122,12 +146,6 @@
 				"description": "Image Reference"
 			}
 		},
-		"plan": {
-			"type": "object",
-			"metadata": {
-				"description": "Plan"
-			}
-		},
 		"redHatTags": {
 			"type": "object",
 			"metadata": {
@@ -137,7 +155,7 @@
 	},
 	"variables": {
 		"managedStorageProfile": {
-			"imageReference": "[parameters('imageReference')]",
+			"imageReference": "[if(equals(parameters('osImageType'), 'marketplace'), parameters('marketplaceOsImage'), parameters('imageReference'))]",
 			"osDisk": {
 				"name": "[concat(parameters('hostName'), '-osdisk')]",
 				"managedDisk": {
@@ -145,7 +163,7 @@
 				},
 				"caching": "ReadWrite",
 				"createOption": "FromImage",
-				"diskSizeGB": 64,
+				"diskSizeGB": "[parameters('osDiskSize')]",
 				"osType": "Linux"
 			},
 			"dataDisks": [{
@@ -183,7 +201,7 @@
 			}]
 		},
 		"unmanagedStorageProfile": {
-			"imageReference": "[parameters('imageReference')]",
+			"imageReference": "[if(equals(parameters('osImageType'), 'marketplace'), parameters('marketplaceOsImage'), parameters('imageReference'))]",
 			"osDisk": {
 				"name": "[concat(parameters('hostName'), '-osdisk')]",
 				"vhd": {
@@ -191,7 +209,7 @@
 				},
 				"caching": "ReadWrite",
 				"createOption": "FromImage",
-				"diskSizeGB": 64
+				"diskSizeGB": "[parameters('osDiskSize')]"
 			},
 			"dataDisks": [{
 				"name": "[concat(parameters('hostname'), '-docker-pool')]",
@@ -236,12 +254,12 @@
 		"apiVersion": "[parameters('apiVersionCompute')]",
 		"tags": {
 			"Role": "[parameters('role')]",
-			"provider": "[parameters('redHatTags').provider]",
-			"app": "[parameters('redHatTags').app]",
-			"version": "[parameters('redHatTags').version]",
-			"platform": "[parameters('redHatTags').platform]"
+				"provider": "[parameters('redHatTags').provider]",
+				"app": "[parameters('redHatTags').app]",
+				"version": "[parameters('redHatTags').version]",
+				"platform": "[parameters('redHatTags').platform]"
 		},
-		"plan": "[parameters('plan')]",
+		"plan": "[if(equals(parameters('osImageType'), 'marketplace'), parameters('marketplacePlan'), json('null'))]",
 		"properties": {
 			"availabilitySet": {
 				"id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('availabilitySet'))]"
