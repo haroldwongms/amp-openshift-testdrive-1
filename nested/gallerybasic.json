@@ -140,7 +140,7 @@
 				},
 				"caching": "ReadWrite",
 				"createOption": "FromImage",
-				"diskSizeGB": 30
+				"diskSizeGB": 32
 			}
 		},
 		"storageProfile": "[concat(parameters('storageKind'), 'StorageProfile')]"
