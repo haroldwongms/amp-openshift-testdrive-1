@@ -363,6 +363,8 @@ $cnsgroup
 [new_nodes]
 EOF
 
+exit
+
 # Update WALinuxAgent
 echo $(date) " - Updating WALinuxAgent on all cluster nodes"
 runuser $SUDOUSER -c "ansible all -f 30 -b -m yum -a 'name=WALinuxAgent state=latest'"

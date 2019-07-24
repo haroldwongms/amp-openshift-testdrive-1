@@ -5,13 +5,9 @@ export USERNAME_ORG=$1
 export PASSWORD_ACT_KEY="$2"
 export POOL_ID=$3
 
-# Remove RHUI
-
-rm -f /etc/yum.repos.d/rh-cloud.repo
-sleep 10
-
 # Register Host with Cloud Access Subscription
 echo $(date) " - Register host with Cloud Access Subscription"
+rm -f /etc/yum.repos.d/kickstart.repo
 
 subscription-manager register --force --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --force --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
 RETCODE=$?
@@ -86,10 +82,6 @@ xfs_growfs $rootdev
 # Install base packages and update system to latest packages
 echo $(date) " - Install base packages and update system to latest packages"
 
-yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion httpd-tools kexec-tools sos psacct ansible
-yum -y update glusterfs-fuse
-yum -y update --exclude=WALinuxAgent
-echo $(date) " - Base package insallation and updates complete"
 
 if [ $? -eq 0 ]
 then
@@ -98,10 +90,6 @@ else
     echo "Root partition failed to expand"
     exit 6
 fi
-
-# Install Docker
-echo $(date) " - Installing Docker"
-yum -y install docker
 
 # Update docker config for insecure registry
 echo "
@@ -133,6 +121,5 @@ fi
 # Enable and start Docker services
 
 systemctl enable docker
-systemctl start docker
 
 echo $(date) " - Script Complete"

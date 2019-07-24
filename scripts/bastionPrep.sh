@@ -24,11 +24,7 @@ echo $(date) " - Generating Private keys for use by Ansible for OpenShift Instal
 
 runuser -l $SUDOUSER -c "echo \"$PRIVATEKEY\" > ~/.ssh/id_rsa"
 runuser -l $SUDOUSER -c "chmod 600 ~/.ssh/id_rsa*"
-
-# Remove RHUI
-
-rm -f /etc/yum.repos.d/rh-cloud.repo
-sleep 10
+rm -f /etc/yum.repos.d/kickstart.repo
 
 # Register Host with Cloud Access Subscription
 echo $(date) " - Register host with Cloud Access Subscription"
@@ -91,29 +87,10 @@ part_number=${name#*${rootdrivename}}
 growpart $rootdrive $part_number -u on
 xfs_growfs $rootdev
 
-# Update system to latest packages
-echo $(date) " - Update system to latest packages"
-yum -y update --exclude=WALinuxAgent
-echo $(date) " - System update complete"
-
-# Install base packages and update system to latest packages
-echo $(date) " - Install base packages"
-yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion httpd-tools kexec-tools sos psacct ansible
-yum -y update glusterfs-fuse
-echo $(date) " - Base package installation complete"
-
 # Install OpenShift utilities
 echo $(date) " - Installing OpenShift utilities"
-yum -y install openshift-ansible-3.11.${MINORVERSION}
+yum -y install openshift-ansible
 echo $(date) " - OpenShift utilities installation complete"
-
-# Installing Azure CLI
-# From https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-yum
-echo $(date) " - Installing Azure CLI"
-sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-sudo sh -c 'echo -e "[azure-cli]\nname=Azure CLI\nbaseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/azure-cli.repo'
-sudo yum install -y azure-cli
-echo $(date) " - Azure CLI installation complete"
 
 # Configure DNS so it always has the domain name
 echo $(date) " - Adding DOMAIN to search for resolv.conf"
@@ -134,26 +111,6 @@ echo $(date) " - NetworkManager configuration complete"
 echo $(date) " - Updating ansible.cfg file"
 wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 5 https://raw.githubusercontent.com/microsoft/openshift-container-platform-playbooks/master/updateansiblecfg.yaml
 ansible-playbook -f 10 ./updateansiblecfg.yaml
-
-# Create certificate files 
-
-if [[ $CUSTOMMASTERCERTTYPE == "custom" ]]
-then
-    echo $(date) " - Creating custom master certificate files"
-    runuser -l $SUDOUSER -c "echo \"$CUSTOMMASTERCAFILE\" > /tmp/masterca.pem"
-	runuser -l $SUDOUSER -c "echo \"$CUSTOMMASTERCERTFILE\" > /tmp/mastercert.pem"
-	runuser -l $SUDOUSER -c "echo \"$CUSTOMMASTERKEYFILE\" > /tmp/masterkey.pem"
-	echo $(date) " - Custom master certificate files masterca.pem, mastercert.pem, masterkey.pem created in /tmp"
-fi
-
-if [ $CUSTOMROUTINGCERTTYPE == "custom" ]
-then
-    echo $(date) " - Creating custom routing certificate files"
-	runuser -l $SUDOUSER -c "echo \"$CUSTOMROUTINGCAFILE\" > /tmp/routingca.pem"
-	runuser -l $SUDOUSER -c "echo \"$CUSTOMROUTINGCERTFILE\" > /tmp/routingcert.pem"
-	runuser -l $SUDOUSER -c "echo \"$CUSTOMROUTINGKEYFILE\" > /tmp/routingkey.pem"
-	echo $(date) " - Custom routing certificate files routingca.pem, routingcert.pem, routingkey.pem created in /tmp"
-fi
 
 echo $(date) " - Script Complete"
 
