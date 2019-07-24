@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 echo $(date) " - Starting Script"
 
@@ -107,15 +107,8 @@ fi
 
 echo $(date) " - Cloning Ansible playbook repository"
 
-((cd /home/$SUDOUSER && git clone https://github.com/Microsoft/openshift-container-platform-playbooks.git) || (cd /home/$SUDOUSER/openshift-container-platform-playbooks && git pull))
+# ((cd /home/$SUDOUSER && git clone https://github.com/Microsoft/openshift-container-platform-playbooks.git) || (cd /home/$SUDOUSER/openshift-container-platform-playbooks && git pull))
 
-if [ -d /home/${SUDOUSER}/openshift-container-platform-playbooks ]
-then
-    echo " - Retrieved playbooks successfully"
-else
-    echo " - Retrieval of playbooks failed"
-    exit 7
-fi
 
 # Configure custom routing certificate
 echo $(date) " - Create variable for routing certificate based on certificate type"
@@ -223,7 +216,7 @@ EOF
 
 # Run a loop playbook to ensure DNS Hostname resolution is working prior to continuing with script
 echo $(date) " - Running DNS Hostname resolution check"
-runuser -l $SUDOUSER -c "ansible-playbook ~/openshift-container-platform-playbooks/check-dns-host-name-resolution.yaml"
+# runuser -l $SUDOUSER -c "ansible-playbook ~/openshift-container-platform-playbooks/check-dns-host-name-resolution.yaml"
 
 # Create glusterfs configuration if CNS is enabled
 if [[ $ENABLECNS == "true" ]]
