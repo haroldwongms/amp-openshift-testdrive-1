@@ -108,7 +108,8 @@ fi
 echo $(date) " - Cloning Ansible playbook repository"
 
 # ((cd /home/$SUDOUSER && git clone https://github.com/Microsoft/openshift-container-platform-playbooks.git) || (cd /home/$SUDOUSER/openshift-container-platform-playbooks && git pull))
-
+curl -o /home/$SUDOUSER/assignclusteradmin.yaml https://raw.githubusercontent.com/microsoft/openshift-container-platform-playbooks/master/assignclusteradmin.yaml 
+curl -o /home/$SUDOUSER/addocpuser.yaml https://raw.githubusercontent.com/microsoft/openshift-container-platform-playbooks/master/addocpuser.yaml
 
 # Configure custom routing certificate
 echo $(date) " - Create variable for routing certificate based on certificate type"
@@ -266,7 +267,7 @@ docker_udev_workaround=True
 openshift_use_dnsmasq=true
 openshift_master_default_subdomain=$ROUTING
 openshift_override_hostname_check=true
-osm_use_cockpit=true
+osm_use_cockpit=false
 os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
 openshift_master_api_port=443
 openshift_master_console_port=443
@@ -279,6 +280,7 @@ $ROUTINGCERTIFICATE
 $MASTERCERTIFICATE
 $PROXY
 
+osn_storage_plugin_deps=[]
 # Workaround for docker image failure
 # https://access.redhat.com/solutions/3480921
 oreg_url=registry.access.redhat.com/openshift3/ose-\${component}:\${version}
@@ -356,31 +358,6 @@ $cnsgroup
 [new_nodes]
 EOF
 
-exit
-
-# Update WALinuxAgent
-echo $(date) " - Updating WALinuxAgent on all cluster nodes"
-runuser $SUDOUSER -c "ansible all -f 30 -b -m yum -a 'name=WALinuxAgent state=latest'"
-
-# Setup NetworkManager to manage eth0
-echo $(date) " - Running NetworkManager playbook"
-runuser -l $SUDOUSER -c "ansible-playbook -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-node/network_manager.yml"
-
-# Configure DNS so it always has the domain name
-echo $(date) " - Adding $DOMAIN to search for resolv.conf"
-runuser $SUDOUSER -c "ansible all -o -f 30 -b -m lineinfile -a 'dest=/etc/sysconfig/network-scripts/ifcfg-eth0 line=\"DOMAIN=$DOMAIN\"'"
-
-# Configure resolv.conf on all hosts through NetworkManager
-echo $(date) " - Restarting NetworkManager"
-runuser -l $SUDOUSER -c "ansible all -o -f 30 -b -m service -a \"name=NetworkManager state=restarted\""
-echo $(date) " - NetworkManager configuration complete"
-
-# Restarting things so everything is clean before continuing with installation
-echo $(date) " - Rebooting cluster to complete installation"
-runuser -l $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/reboot-master.yaml"
-runuser -l $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/reboot-nodes.yaml"
-sleep 20
-
 # Run OpenShift Container Platform prerequisites playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
 runuser -l $SUDOUSER -c "ansible-playbook -f 30 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
@@ -397,110 +374,16 @@ else
     exit 6
 fi
 
-# Install OpenShift Atomic Client
-cd /root
-mkdir .kube
-runuser ${SUDOUSER} -c "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${SUDOUSER}@${MASTER}01:~/.kube/config /tmp/kube-config"
-cp /tmp/kube-config /root/.kube/config
-mkdir /home/${SUDOUSER}/.kube
-cp /tmp/kube-config /home/${SUDOUSER}/.kube/config
-chown --recursive ${SUDOUSER} /home/${SUDOUSER}/.kube
-rm -f /tmp/kube-config
-yum -y install atomic-openshift-clients
-
 # Adding user to OpenShift authentication file
 echo $(date) " - Adding OpenShift user"
-runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/addocpuser.yaml"
+runuser $SUDOUSER -c "ansible-playbook -f 30 ~/addocpuser.yaml"
 
 # Assigning cluster admin rights to OpenShift user
 echo $(date) " - Assigning cluster admin rights to user"
-runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/assignclusteradminrights.yaml"
-
-# Installing Service Catalog, Ansible Service Broker and Template Service Broker
-if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
-then
-    runuser -l $SUDOUSER -c "ansible-playbook -e openshift_enable_service_catalog=true -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-service-catalog/config.yml"
-fi
-
-# Adding Open Sevice Broker for Azaure (requires service catalog)
-# Disabling deployment of OSBA
-# if [[ $AZURE == "true" ]]
-# then
-    # oc new-project osba
-    # oc process -f https://raw.githubusercontent.com/Azure/open-service-broker-azure/master/contrib/openshift/osba-os-template.yaml  \
-        # -p ENVIRONMENT=AzurePublicCloud \
-        # -p AZURE_SUBSCRIPTION_ID=$SUBSCRIPTIONID \
-        # -p AZURE_TENANT_ID=$TENANTID \
-        # -p AZURE_CLIENT_ID=$AADCLIENTID \
-        # -p AZURE_CLIENT_SECRET=$AADCLIENTSECRET \
-        # | oc create -f -
-# fi
-
-# Configure Metrics
-if [[ $METRICS == "true" ]]
-then
-    sleep 30
-    echo $(date) "- Deploying Metrics"
-    if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
-    then
-        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_metrics_install_metrics=True -e openshift_metrics_cassandra_storage_type=dynamic -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml"
-    else
-        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_metrics_install_metrics=True /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml"
-    fi
-    if [ $? -eq 0 ]
-    then
-        echo $(date) " - Metrics configuration completed successfully"
-    else
-        echo $(date) " - Metrics configuration failed"
-        exit 11
-    fi
-fi
-
-# Configure Logging
-
-if [[ $LOGGING == "true" ]]
-then
-    sleep 60
-    echo $(date) "- Deploying Logging"
-    if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
-    then
-        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_logging_install_logging=True -e openshift_logging_es_pvc_dynamic=true -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml"
-    else
-        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_logging_install_logging=True -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml"
-    fi
-    if [ $? -eq 0 ]
-    then
-        echo $(date) " - Logging configuration completed successfully"
-    else
-        echo $(date) " - Logging configuration failed"
-        exit 12
-    fi
-fi
-
-# Creating variables file for private master and Azure AD configuration playbook
-echo $(date) " - Creating variables file for future playbooks"
-cat > /home/$SUDOUSER/openshift-container-platform-playbooks/vars.yaml <<EOF
-admin_user: $SUDOUSER
-master_lb_private_dns: $PRIVATEDNS
-domain: $DOMAIN
-EOF
-
-# Configure cluster for private masters
-if [[ $MASTERCLUSTERTYPE == "private" ]]
-then
-	echo $(date) " - Configure cluster for private masters"
-	runuser -l $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/activate-private-lb-fqdn.31x.yaml"
-fi
+runuser $SUDOUSER -c "ansible-playbook -f 30 ~/assignclusteradminrights.yaml"
 
 # Delete yaml files
 echo $(date) " - Deleting unecessary files"
-rm -rf /home/${SUDOUSER}/openshift-container-platform-playbooks
-
-# Delete pem files
-echo $(date) " - Delete pem files"
-rm -rf /tmp/*.pem
-
-echo $(date) " - Sleep for 15 seconds"
-sleep 15
+#rm -rf /home/${SUDOUSER}/openshift-container-platform-playbooks
 
 echo $(date) " - Script complete"
